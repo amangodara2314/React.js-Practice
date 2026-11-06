@@ -42,6 +42,7 @@ function AutoComplete() {
   const [isFocused, setIsFocused] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const debouncedValue = useDebounce(value);
+  const [focusedCityIndex, setFocusedCityIndex] = useState<number | null>(null);
 
   const handleOnChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>): void => {
@@ -82,9 +83,33 @@ function AutoComplete() {
         setIsFocused(false);
       }
     };
+
+    const handleArrowKey = (event: KeyboardEvent) => {
+      if (["ArrowDown", "ArrowUp"].includes(event.key) && cities.length) {
+        event.preventDefault();
+
+        setFocusedCityIndex((prev) => {
+          if (prev === null) {
+            return event.key === "ArrowDown" ? 0 : cities.length - 1;
+          }
+
+          if (event.key === "ArrowDown") {
+            return prev === cities.length - 1 ? 0 : prev + 1;
+          }
+
+          return prev === 0 ? cities.length - 1 : prev - 1;
+        });
+      }
+    };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleArrowKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleArrowKey);
+    };
   }, []);
+
+  console.log(focusedCityIndex);
 
   return (
     <div ref={containerRef} className="flex flex-col relative">
