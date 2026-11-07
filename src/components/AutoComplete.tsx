@@ -43,6 +43,7 @@ function AutoComplete() {
   const containerRef = useRef<HTMLDivElement>(null);
   const debouncedValue = useDebounce(value);
   const [focusedCityIndex, setFocusedCityIndex] = useState<number | null>(null);
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
 
   const handleOnChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>): void => {
@@ -59,8 +60,10 @@ function AutoComplete() {
       return;
     }
 
-    const filteredResults = CITY_LIST.filter((city) =>
-      city.toLowerCase().includes(normalizedValue),
+    const filteredResults = CITY_LIST.filter(
+      (city) =>
+        city.toLowerCase().includes(normalizedValue) &&
+        city.toLowerCase() !== selectedCity?.toLowerCase(),
     );
 
     setCities(filteredResults);
@@ -72,7 +75,7 @@ function AutoComplete() {
 
   useEffect(() => {
     filterCities(debouncedValue);
-  }, [debouncedValue]);
+  }, [debouncedValue, selectedCity]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -85,8 +88,26 @@ function AutoComplete() {
     };
 
     const handleArrowKey = (event: KeyboardEvent) => {
-      if (["ArrowDown", "ArrowUp"].includes(event.key) && cities.length) {
+      if (
+        ["ArrowDown", "ArrowUp", "Enter", "Escape"].includes(event.key) &&
+        cities.length
+      ) {
         event.preventDefault();
+
+        if (event.key === "Enter") {
+          if (
+            focusedCityIndex !== null &&
+            cities[focusedCityIndex] !== undefined
+          ) {
+            setSelectedCity(cities[focusedCityIndex]);
+          }
+          return;
+        }
+        if (event.key === "Escape") {
+          setFocusedCityIndex(null);
+          setIsFocused(false);
+          return;
+        }
 
         setFocusedCityIndex((prev) => {
           if (prev === null) {
@@ -101,23 +122,25 @@ function AutoComplete() {
         });
       }
     };
+
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleArrowKey);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleArrowKey);
     };
-  }, []);
-
-  console.log(focusedCityIndex);
+  }, [cities, focusedCityIndex, selectedCity]);
 
   return (
     <div ref={containerRef} className="flex flex-col relative">
+      {selectedCity && <p>Selected City: {selectedCity}</p>}
       <SearchInput
         handleOnChange={handleOnChange}
         handleOnFocus={handleOnFocus}
       />
-      {isFocused && <CitiesList cities={cities} />}
+      {isFocused && (
+        <CitiesList cities={cities} focusedCityIndex={focusedCityIndex} />
+      )}
     </div>
   );
 }
