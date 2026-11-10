@@ -14,6 +14,7 @@ export function SearchInput({
       <input
         className="px-2 py-3 border border-black rounded-2xl"
         name="search-input"
+        id="search-input"
         onChange={handleOnChange}
         onFocus={handleOnFocus}
       />

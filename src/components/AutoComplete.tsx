@@ -5,6 +5,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ChangeEvent,
@@ -37,7 +38,6 @@ const CITY_LIST: string[] = [
 ];
 
 function AutoComplete() {
-  const [cities, setCities] = useState<string[]>(CITY_LIST.slice(-5));
   const [value, setValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -52,30 +52,21 @@ function AutoComplete() {
     [],
   );
 
-  const filterCities = (value: string): void => {
-    const normalizedValue = value.trim().toLowerCase();
+  const cities = useMemo(() => {
+    const query = debouncedValue.trim().toLowerCase();
 
-    if (!normalizedValue) {
-      setCities(CITY_LIST.slice(-5));
-      return;
-    }
+    return CITY_LIST.filter((city) => {
+      const matchesQuery = city.toLowerCase().includes(query);
 
-    const filteredResults = CITY_LIST.filter(
-      (city) =>
-        city.toLowerCase().includes(normalizedValue) &&
-        city.toLowerCase() !== selectedCity?.toLowerCase(),
-    );
+      const isNotSelected = city.toLowerCase() !== selectedCity?.toLowerCase();
 
-    setCities(filteredResults);
-  };
+      return matchesQuery && isNotSelected;
+    }).slice(0, 8);
+  }, [debouncedValue, selectedCity]);
 
   const handleOnFocus: FocusEventHandler<HTMLInputElement> = useCallback(() => {
     setIsFocused(true);
   }, []);
-
-  useEffect(() => {
-    filterCities(debouncedValue);
-  }, [debouncedValue, selectedCity]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -88,6 +79,7 @@ function AutoComplete() {
     };
 
     const handleArrowKey = (event: KeyboardEvent) => {
+      if (!isFocused) return;
       if (
         ["ArrowDown", "ArrowUp", "Enter", "Escape"].includes(event.key) &&
         cities.length
@@ -106,6 +98,11 @@ function AutoComplete() {
         if (event.key === "Escape") {
           setFocusedCityIndex(null);
           setIsFocused(false);
+          const input =
+            document.querySelector<HTMLInputElement>("#search-input");
+          if (input) {
+            input.blur();
+          }
           return;
         }
 
@@ -130,6 +127,10 @@ function AutoComplete() {
       document.removeEventListener("keydown", handleArrowKey);
     };
   }, [cities, focusedCityIndex, selectedCity]);
+
+  useEffect(() => {
+    setFocusedCityIndex(null);
+  }, [debouncedValue]);
 
   return (
     <div ref={containerRef} className="flex flex-col relative">
