@@ -8,7 +8,11 @@ export default function CitiesList({
   focusedCityIndex,
 }: CitiesListProps) {
   return (
-    <ul className="absolute top-12 left-0 w-full bg-white border border-gray-300 rounded-md shadow-lg z-10">
+    <ul
+      id={`cities-list`}
+      role="listbox"
+      className="absolute top-12 left-0 w-full bg-white border border-gray-300 rounded-md shadow-lg z-10"
+    >
       {cities.length === 0 ? (
         <li>No City Found</li>
       ) : (
@@ -16,6 +20,9 @@ export default function CitiesList({
           return (
             <li
               key={index}
+              role="option"
+              id={`city-option-${index}`}
+              aria-selected={focusedCityIndex === index}
               className={`hover:bg-amber-50 ${focusedCityIndex === index && "bg-amber-50"}`}
             >
               {city}

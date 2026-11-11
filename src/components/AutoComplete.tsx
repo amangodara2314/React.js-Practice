@@ -10,6 +10,7 @@ import {
   useState,
   type ChangeEvent,
   type FocusEventHandler,
+  type KeyboardEvent,
 } from "react";
 import { SearchInput } from "./SearchInput";
 import CitiesList from "./CitiesList";
@@ -48,6 +49,9 @@ function AutoComplete() {
   const handleOnChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>): void => {
       setValue(event.currentTarget.value);
+      if (!isFocused) {
+        setIsFocused(true);
+      }
     },
     [],
   );
@@ -68,23 +72,20 @@ function AutoComplete() {
     setIsFocused(true);
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setIsFocused(false);
-      }
-    };
-
-    const handleArrowKey = (event: KeyboardEvent) => {
+  const handleOnKeyDown = useCallback(
+    (event: KeyboardEvent) => {
       if (!isFocused) return;
-      if (
-        ["ArrowDown", "ArrowUp", "Enter", "Escape"].includes(event.key) &&
-        cities.length
-      ) {
+      if (["ArrowDown", "ArrowUp", "Enter", "Escape"].includes(event.key)) {
         event.preventDefault();
+
+        if (event.key === "Escape") {
+          setFocusedCityIndex(null);
+          setIsFocused(false);
+        }
+
+        if (!cities.length) {
+          return;
+        }
 
         if (event.key === "Enter") {
           if (
@@ -92,16 +93,9 @@ function AutoComplete() {
             cities[focusedCityIndex] !== undefined
           ) {
             setSelectedCity(cities[focusedCityIndex]);
-          }
-          return;
-        }
-        if (event.key === "Escape") {
-          setFocusedCityIndex(null);
-          setIsFocused(false);
-          const input =
-            document.querySelector<HTMLInputElement>("#search-input");
-          if (input) {
-            input.blur();
+            setValue(cities[focusedCityIndex]);
+            setIsFocused(false);
+            setFocusedCityIndex(null);
           }
           return;
         }
@@ -118,15 +112,26 @@ function AutoComplete() {
           return prev === 0 ? cities.length - 1 : prev - 1;
         });
       }
+    },
+    [isFocused, cities, focusedCityIndex, selectedCity],
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setIsFocused(false);
+        setFocusedCityIndex(null);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleArrowKey);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleArrowKey);
     };
-  }, [cities, focusedCityIndex, selectedCity]);
+  }, []);
 
   useEffect(() => {
     setFocusedCityIndex(null);
@@ -138,6 +143,9 @@ function AutoComplete() {
       <SearchInput
         handleOnChange={handleOnChange}
         handleOnFocus={handleOnFocus}
+        handleOnKeyDown={handleOnKeyDown}
+        isFocused={isFocused}
+        focusedCityIndex={focusedCityIndex}
       />
       {isFocused && (
         <CitiesList cities={cities} focusedCityIndex={focusedCityIndex} />
